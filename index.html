@@ -1,0 +1,1649 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Octahedron Rotations</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=STIX+Two+Text:ital,wght@0,400;0,600;1,400;1,600&display=swap">
+<style>
+/* Layout: one-screen lecture demo, the companion to the cube and dodecahedron pages. The list of rotations sits on the left, the octahedron in the middle, and a readout on the right tracks where the four pairs of opposite faces and the three vertex axes went. */
+:root {
+  --bg: #EFEEEC;
+  --surface: #FAFAF9;
+  --stage: #FCFBFA;
+  --stage-glow: #FFFFFF;
+  --ink: #1C1919;
+  --muted: #615B5A;
+  --rule: #D3CFCC;
+  --accent: #800000;
+  --accent-text: #800000;
+  --accent-ink: #FFFFFF;
+  --accent-soft: #F4E7E5;
+  --d1: #1F5FA8; --d2: #B35C00; --d3: #6B3FA0; --d4: #2B7A4B;
+  --disc-ink: #FFFFFF;
+  --face: #C4BCB5;
+  --face-alpha: 0.34;
+  --shade: #800000;
+  --shade-alpha: 0.2;
+  --axis: #1C1919;
+  --coord: #9A9290;
+  --ghost: #7D7572;
+  --font-math: "STIX Two Text", "STIX Two Math", "Times New Roman", Times, serif;
+  --font-ui: "Source Sans 3", "Source Sans Pro", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #131111; --surface: #1D1A19; --stage: #191615; --stage-glow: #221E1D;
+    --ink: #ECE8E5; --muted: #A59E9A; --rule: #37302E;
+    --accent: #8E1B1B; --accent-text: #E39A9A; --accent-ink: #FFFFFF; --accent-soft: #3A1E1E;
+    --d1: #6FA8E8; --d2: #F0A04B; --d3: #B793E8; --d4: #5CC594; --disc-ink: #141212;
+    --face: #A39A95; --face-alpha: 0.2; --shade: #E58E8E; --shade-alpha: 0.2;
+    --axis: #F2EEEB; --coord: #7F7774; --ghost: #A0978F;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #131111; --surface: #1D1A19; --stage: #191615; --stage-glow: #221E1D;
+  --ink: #ECE8E5; --muted: #A59E9A; --rule: #37302E;
+  --accent: #8E1B1B; --accent-text: #E39A9A; --accent-ink: #FFFFFF; --accent-soft: #3A1E1E;
+  --d1: #6FA8E8; --d2: #F0A04B; --d3: #B793E8; --d4: #5CC594; --disc-ink: #141212;
+  --face: #A39A95; --face-alpha: 0.2; --shade: #E58E8E; --shade-alpha: 0.2;
+  --axis: #F2EEEB; --coord: #7F7774; --ghost: #A0978F;
+  color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: 16px;
+  line-height: 1.4;
+}
+i, .math { font-family: var(--font-math); }
+sub { font-size: 0.72em; line-height: 0; }
+a { color: var(--accent-text); }
+
+.app {
+  height: 100%;
+  max-width: 1680px;
+  margin-inline: auto;
+  padding-inline: 16px;
+  padding-block: 12px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Header */
+.top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 24px;
+}
+.title { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 16px; min-width: 0; }
+h1 {
+  margin: 0;
+  font-family: var(--font-math);
+  font-weight: 600;
+  font-size: clamp(1.45rem, 2.2vw, 2rem);
+  line-height: 1.1;
+  color: var(--accent-text);
+  text-wrap: balance;
+}
+.subtitle { margin: 0; font-family: var(--font-math); font-style: italic; font-size: 1.05rem; color: var(--muted); }
+.top-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+
+/* Buttons */
+.btn, .seg button, .tog {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45em;
+  padding: 0.5em 0.75em;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink);
+  font: 600 0.92rem/1 var(--font-ui);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn:hover, .seg button:hover, .tog:hover { border-color: var(--muted); }
+.btn:disabled { opacity: 0.45; cursor: default; border-color: var(--rule); }
+.btn:focus-visible, .seg button:focus-visible, .tog:focus-visible, .rot:focus-visible, input:focus-visible, a:focus-visible {
+  outline: 3px solid var(--accent-text);
+  outline-offset: 2px;
+}
+.btn.primary, .btn[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.seg { display: inline-flex; }
+.seg button { border-radius: 0; margin-left: -1px; }
+.seg button:first-child { border-radius: 8px 0 0 8px; margin-left: 0; }
+.seg button:last-child { border-radius: 0 8px 8px 0; }
+.seg button[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--bg); position: relative; }
+.seg.small button { padding: 0.42em 0.6em; font-size: 0.85rem; }
+.tog { padding: 0.38em 0.6em; font-weight: 600; font-size: 0.85rem; color: var(--muted); }
+.tog::before {
+  content: "";
+  width: 0.8em;
+  height: 0.8em;
+  border: 1.5px solid currentColor;
+  border-radius: 3px;
+}
+.tog[aria-pressed="true"] { color: var(--ink); }
+.tog[aria-pressed="true"]::before { background: var(--accent-text); border-color: var(--accent-text); box-shadow: inset 0 0 0 2px var(--surface); }
+.tog i { font-weight: 400; font-size: 1.05em; }
+kbd {
+  padding: 0.1em 0.36em;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  font: 600 0.7rem/1.2 var(--font-ui);
+  opacity: 0.6;
+}
+
+/* Three columns */
+.layout {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(250px, 300px) minmax(0, 1fr) minmax(270px, 320px);
+  gap: 16px;
+}
+.side { display: flex; flex-direction: column; gap: 8px; min-height: 0; min-width: 0; }
+.tabs { align-self: flex-start; }
+.catalog, .readout { min-height: 0; overflow-y: auto; min-width: 0; }
+
+/* Stage */
+.stage { display: flex; flex-direction: column; gap: 8px; min-height: 0; min-width: 0; }
+.bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; }
+.shows { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.bar-label {
+  font: 600 0.72rem var(--font-ui);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.viewport {
+  position: relative;
+  flex: 1;
+  min-height: 280px;
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  background: radial-gradient(circle at 50% 45%, var(--stage-glow), var(--stage) 70%);
+  overflow: hidden;
+}
+.viewport canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  cursor: grab;
+  transition: opacity 170ms ease;
+}
+.viewport canvas.dragging { cursor: grabbing; }
+.viewport.fading canvas { opacity: 0.06; }
+.hint {
+  position: absolute;
+  left: 12px;
+  bottom: 8px;
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+  pointer-events: none;
+  transition: opacity 400ms ease;
+}
+.hint.gone { opacity: 0; }
+.playbar { flex-wrap: nowrap; }
+.playbar input[type="range"] { flex: 1; min-width: 60px; accent-color: var(--accent-text); }
+.live {
+  min-width: 7.4em;
+  font-family: var(--font-math);
+  font-size: 1.02rem;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+#btn-play { min-width: 7.6em; justify-content: space-between; }
+
+/* Catalog */
+.catalog { display: flex; flex-direction: column; gap: 8px; padding-right: 2px; }
+.cat-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 3px 10px; }
+.eyebrow {
+  margin: 0;
+  font: 600 0.75rem var(--font-ui);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.legend { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; font-size: 0.8rem; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 5px; }
+.sw { width: 0.95em; height: 0.95em; border-radius: 3px; border: 1px solid var(--rule); background: var(--surface); }
+.sw.pos { background: var(--accent); border-color: var(--accent); }
+.sw.move { border: 2px solid var(--accent-text); }
+.block { display: flex; flex-direction: column; gap: 5px; padding-top: 7px; border-top: 1px solid var(--rule); }
+.block-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.block-head h3 { margin: 0; font: 600 1.08rem var(--font-math); }
+.block-head .count { font: 600 0.8rem var(--font-ui); color: var(--muted); font-variant-numeric: tabular-nums; }
+.block-note { margin: 0; font-size: 0.85rem; color: var(--muted); }
+.grp { display: flex; flex-direction: column; gap: 2px; }
+.grp.inline { flex-direction: row; align-items: center; justify-content: space-between; }
+.grp-label { margin: 0; font-size: 0.82rem; font-weight: 600; color: var(--ink); }
+.grp-label .math { font-size: 1.08em; font-weight: 400; }
+.grp-label span.why { font-weight: 400; color: var(--muted); }
+.tbl { display: grid; grid-template-columns: 1.7em repeat(var(--cols), minmax(0, 1fr)); gap: 3px 4px; align-items: center; }
+.colh { text-align: center; font-family: var(--font-math); font-size: 0.85rem; color: var(--muted); line-height: 1.1; }
+.rowh { font-family: var(--font-math); font-size: 0.95rem; color: var(--muted); white-space: nowrap; }
+.chips { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 3px 4px; }
+.chips.one { display: flex; }
+.chips.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.chips.four .rot { padding-inline: 0; word-spacing: 0.08em; }
+.chips.six { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 3px; }
+.chips.six .rot { padding-inline: 0; word-spacing: 0.1em; }
+.rot {
+  min-width: 0;
+  padding: 0.27em 0.2em;
+  border: 1px solid var(--rule);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--ink);
+  font: 400 0.95rem/1.1 var(--font-math);
+  word-spacing: 0.16em;
+  white-space: nowrap;
+  text-align: center;
+  cursor: pointer;
+  transition: background-color 160ms, color 160ms, box-shadow 160ms;
+}
+.chips.one .rot { padding-inline: 1.1em; }
+.rot:hover { border-color: var(--muted); }
+.rot.is-move { box-shadow: inset 0 0 0 2px var(--accent-text); border-color: var(--accent-text); }
+.rot.is-pos { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.rot.is-pos.is-move { box-shadow: inset 0 0 0 2px var(--accent-ink); }
+.sum { margin: 0; padding-top: 6px; border-top: 1px solid var(--rule); font-family: var(--font-math); font-size: 0.98rem; color: var(--muted); }
+
+/* Readout */
+.readout { display: flex; flex-direction: column; gap: 10px; }
+.card { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border: 1px solid var(--rule); border-radius: 10px; background: var(--surface); }
+.mv-name { margin: 0; font: 600 1.18rem/1.25 var(--font-math); text-wrap: balance; }
+.mv-class { margin: 0; font-size: 0.86rem; color: var(--muted); }
+.tag {
+  display: inline-block;
+  margin-right: 0.35em;
+  padding: 0.1em 0.5em;
+  border-radius: 999px;
+  font: 700 0.7rem/1.4 var(--font-ui);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  vertical-align: 0.08em;
+}
+.tag.even { background: var(--accent); color: var(--accent-ink); }
+.tag.odd { border: 1px solid var(--ink); color: var(--ink); }
+.facts { margin: 0; display: grid; border-top: 1px solid var(--rule); }
+.fact { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding-block: 0.3em; border-bottom: 1px solid var(--rule); }
+.fact dt { font-size: 0.84rem; color: var(--muted); white-space: nowrap; }
+.fact dd { margin: 0; font-family: var(--font-math); font-size: 1.06rem; text-align: right; word-spacing: 0.1em; min-width: 0; overflow-wrap: anywhere; }
+.cyc { word-spacing: 0.22em; }
+.pill {
+  margin: 0;
+  align-self: flex-start;
+  padding: 0.28em 0.75em;
+  border-radius: 999px;
+  font: 600 0.86rem var(--font-ui);
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.pill i { font-weight: 400; }
+.pill.odd { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--ink); }
+.pill.transit { background: transparent; color: var(--muted); box-shadow: inset 0 0 0 1.5px var(--rule); }
+.where { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 10px; transition: opacity 200ms; }
+.where li { display: flex; align-items: center; gap: 7px; font-family: var(--font-math); font-size: 1.04rem; white-space: nowrap; }
+.where.stale { opacity: 0.35; }
+.disc {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 1.45em;
+  height: 1.45em;
+  border-radius: 50%;
+  background: var(--dc);
+  color: var(--disc-ink);
+  font: 700 0.8rem/1 var(--font-ui);
+}
+/* The tag a vertex carries on the solid: the letter of the axis it started on. */
+.vtag {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 1.45em;
+  height: 1.45em;
+  border-radius: 4px;
+  background: var(--ink);
+  color: var(--stage);
+  font: italic 400 1rem/1 var(--font-math);
+}
+.sigma { margin: 0; display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 12px; font-family: var(--font-math); font-size: 1.32rem; transition: opacity 200ms; }
+.sigma .sg { font-size: 1rem; color: var(--muted); white-space: nowrap; }
+/* The vertex rows share a grid with τ, which takes the free fourth cell. */
+.where.axes { padding-top: 5px; border-top: 1px solid var(--rule); }
+.where .cells { display: contents; }
+.tau { margin: 0; align-self: center; justify-self: end; font-family: var(--font-math); font-size: 1.2rem; white-space: nowrap; }
+.tau .sg { font-size: 0.9rem; color: var(--muted); }
+.detail { margin: 0; display: flex; flex-direction: column; gap: 3px; font-size: 0.9rem; color: var(--muted); }
+.detail p { margin: 0; }
+.detail .math, .detail i { color: var(--ink); }
+.detail .nw { white-space: nowrap; }
+.btnrow { display: flex; gap: 8px; padding-top: 2px; }
+.key { margin: 0; font-size: 0.82rem; line-height: 1.45; color: var(--muted); }
+
+/* Footer */
+.keys { display: flex; flex-wrap: wrap; gap: 2px 16px; font-size: 0.8rem; color: var(--muted); }
+.keys kbd { opacity: 0.85; }
+
+/* Short screens (a 1280×720 projector, with or without full screen): tighten the columns so the whole list and Undo/Reset stay in view. */
+@media (min-width: 1181px) and (max-height: 760px) {
+  .app { padding-block: 8px 6px; gap: 8px; }
+  .side { gap: 5px; }
+  .tabs button { padding-block: 0.32em; }
+  .block-note { font-size: 0.82rem; line-height: 1.3; }
+  .grp-label { line-height: 1.25; }
+  .catalog { gap: 5px; }
+  .block { gap: 3px; padding-top: 5px; }
+  .grp { gap: 1px; }
+  .tbl, .chips { row-gap: 2px; }
+  .rot { padding-block: 0.16em; }
+  .sum { padding-top: 4px; }
+  .readout { gap: 8px; }
+  .card { gap: 3px; padding: 8px 12px; }
+  .fact { padding-block: 0.2em; }
+  .where { gap: 2px 10px; }
+  .sigma { font-size: 1.22rem; }
+  .tau { font-size: 1.14rem; }
+  .where.axes { padding-top: 3px; }
+  .detail { gap: 2px; }
+}
+@media (min-width: 1181px) and (max-height: 680px) {
+  .keys { display: none; }
+}
+@media (max-width: 1180px) {
+  html, body { height: auto; }
+  .app { height: auto; }
+  .layout { grid-template-columns: minmax(0, 1fr) minmax(260px, 320px); }
+  .viewport { flex: none; height: min(72vh, 640px); }
+  .side { grid-column: 1 / -1; order: 3; }
+  .catalog { overflow: visible; display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); align-items: start; gap: 10px 20px; }
+  .catalog .cat-head, .catalog .sum { grid-column: 1 / -1; }
+  .readout { overflow: visible; }
+}
+@media (max-width: 760px) {
+  .layout { grid-template-columns: minmax(0, 1fr); }
+  .viewport { height: auto; aspect-ratio: 1; max-height: 78vh; }
+  .playbar { flex-wrap: wrap; }
+  .playbar input[type="range"] { flex-basis: 100%; order: 3; }
+  .live { min-width: 0; flex: 1; }
+  .keys { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .viewport canvas, .hint, .rot, .where, .sigma { transition: none; }
+}
+</style>
+</head>
+<body>
+
+<div class="app" id="app">
+  <header class="top">
+    <div class="title">
+      <h1>Rotations of the octahedron</h1>
+      <p class="subtitle">All 24 permutations of the four pairs of opposite faces</p>
+    </div>
+    <div class="top-actions">
+      <div class="seg small" role="group" aria-label="Speed">
+        <button type="button" data-speed="slow" aria-pressed="false">Slow</button>
+        <button type="button" data-speed="normal" aria-pressed="true">Normal</button>
+        <button type="button" data-speed="fast" aria-pressed="false">Fast</button>
+      </div>
+      <button class="btn" id="btn-tour" type="button" aria-pressed="false"><span id="tour-label">Play all 24</span> <kbd>A</kbd></button>
+      <button class="btn" id="btn-full" type="button">Full screen <kbd>F</kbd></button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <div class="side">
+      <div class="seg small tabs" role="group" aria-label="Arrange the list">
+        <button type="button" id="grp-sign" data-group="sign" aria-pressed="true">Even and odd</button>
+        <button type="button" id="grp-cosets" data-group="cosets" aria-pressed="false">Cosets of <i>V</i> <kbd>G</kbd></button>
+      </div>
+      <nav class="catalog" id="catalog" aria-label="Rotations"></nav>
+    </div>
+
+    <section class="stage" aria-label="The octahedron">
+      <div class="bar">
+        <div class="shows" role="group" aria-label="Show">
+          <span class="bar-label">Show</span>
+          <button class="tog" type="button" id="show-faxes" data-show="faxes" aria-pressed="true">Face axes</button>
+          <button class="tog" type="button" id="show-vtags" data-show="vtags" aria-pressed="true">Vertex tags</button>
+          <button class="tog" type="button" id="show-cube" data-show="cube" aria-pressed="false">Cube</button>
+          <button class="tog" type="button" id="show-axes" data-show="axes" aria-pressed="true">Axes</button>
+          <button class="tog" type="button" id="show-names" data-show="names" aria-pressed="true">Names <i>F</i><sub><i>i</i></sub></button>
+        </div>
+      </div>
+      <div class="viewport" id="viewport">
+        <canvas id="cv" role="img" aria-label="A rotating octahedron. Drag to turn the view."></canvas>
+        <p class="hint" id="hint">Drag to turn the view. Double-click to reset it.</p>
+      </div>
+      <div class="bar playbar">
+        <button class="btn primary" id="btn-play" type="button"><span id="play-label">Play</span> <kbd>Space</kbd></button>
+        <input type="range" id="scrub" min="0" max="1000" step="1" value="0" aria-label="How far this move has turned">
+        <output class="live" id="mv-live" for="scrub"></output>
+        <button class="btn" id="btn-view" type="button" aria-pressed="false">View along axis <kbd>V</kbd></button>
+      </div>
+    </section>
+
+    <aside class="readout" aria-label="Readout">
+      <section class="card" aria-live="polite">
+        <p class="eyebrow" id="mv-eyebrow">This move</p>
+        <h2 class="mv-name" id="mv-name"></h2>
+        <p class="mv-class" id="mv-class"></p>
+        <dl class="facts">
+          <div class="fact"><dt>Map</dt><dd id="mv-formula"></dd></div>
+          <div class="fact"><dt>Angle</dt><dd id="mv-angle"></dd></div>
+          <div class="fact"><dt>Faces <i>σ</i> ↦ axes <i>τ</i></dt><dd><span id="mv-perm" class="cyc"></span> ↦ <span id="mv-tau" class="cyc"></span></dd></div>
+        </dl>
+      </section>
+      <section class="card">
+        <p class="eyebrow">Where the octahedron is now</p>
+        <p class="pill" id="pos-pill"></p>
+        <ul class="where" id="pos-where"></ul>
+        <p class="sigma" id="pos-sigma"><span><i>σ</i> = <span class="cyc" id="pos-perm">1</span></span><span class="sg">sgn <i>σ</i> = <span id="pos-sgn">+1</span></span></p>
+        <div class="where axes" id="pos-axesbox">
+          <ul class="cells" id="pos-axes"></ul>
+          <p class="tau" id="pos-tausig"><i>τ</i> = <span class="cyc" id="pos-tau">1</span> <span class="sg" id="pos-inv"></span></p>
+        </div>
+        <div class="detail" id="pos-detail"></div>
+        <div class="btnrow">
+          <button class="btn" id="btn-undo" type="button">Undo <kbd>Z</kbd></button>
+          <button class="btn" id="btn-reset" type="button">Reset <kbd>R</kbd></button>
+        </div>
+      </section>
+      <p class="key" id="key"></p>
+    </aside>
+  </main>
+
+  <footer class="keys">
+    <span><kbd>Space</kbd> play / pause</span>
+    <span><kbd>Z</kbd> undo</span>
+    <span><kbd>R</kbd> reset</span>
+    <span><kbd>A</kbd> play all</span>
+    <span><kbd>G</kbd> even and odd / cosets of <i>V</i></span>
+    <span><kbd>V</kbd> view along the axis</span>
+    <span><kbd>←</kbd> <kbd>↑</kbd> <kbd>→</kbd> <kbd>↓</kbd> turn the view</span>
+    <span><kbd>Shift</kbd>-click a rotation to start from the identity</span>
+    <span><kbd>Esc</kbd> stop</span>
+  </footer>
+</div>
+
+<script>
+(() => {
+  "use strict";
+  const PI = Math.PI;
+  const $ = (id) => document.getElementById(id);
+
+  // ---------- vectors and 3x3 matrices ----------
+  const add = (a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
+  const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+  const mul = (a, s) => [a[0] * s, a[1] * s, a[2] * s];
+  const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+  const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+  const norm = (a) => Math.hypot(a[0], a[1], a[2]);
+  const unit = (a) => mul(a, 1 / norm(a));
+  const lerp = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+  const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
+  const I3 = [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
+  const mm = (A, B) => A.map((r) => [0, 1, 2].map((j) => r[0] * B[0][j] + r[1] * B[1][j] + r[2] * B[2][j]));
+  const mv = (A, v) => A.map((r) => dot(r, v));
+  const tr = (A) => [0, 1, 2].map((i) => [A[0][i], A[1][i], A[2][i]]);
+  const mkey = (A) => A.flat().join(",");
+  const roundM = (A) => A.map((r) => r.map((x) => Math.round(x) || 0));
+  // Rotation by ang about axis, counterclockwise when the axis points at the viewer (right-hand rule).
+  function rot(axis, ang) {
+    const [x, y, z] = unit(axis), c = Math.cos(ang), s = Math.sin(ang), t = 1 - c;
+    return [
+      [t * x * x + c, t * x * y - s * z, t * x * z + s * y],
+      [t * x * y + s * z, t * y * y + c, t * y * z - s * x],
+      [t * x * z - s * y, t * y * z + s * x, t * z * z + c],
+    ];
+  }
+
+  // ---------- the two actions ----------
+  // N[i-1] is the outward normal of the shaded face F_i, which lies in the plane N[i-1]·x = 1 and has center N[i-1]/3.
+  // −F_i is the opposite face. These are the cube's diagonals v_1..v_4, so σ matches the cube page.
+  const N = [[1, 1, 1], [1, -1, -1], [-1, 1, -1], [-1, -1, 1]];
+  // On the face pairs: g(F_i) = e[i] F_{s[i]}. Arrays are 1-based; index 0 is unused.
+  function action(M) {
+    const s = [0], e = [0];
+    for (let i = 1; i <= 4; i++) {
+      const w = mv(M, N[i - 1]);
+      for (let j = 1; j <= 4; j++) {
+        const d = dot(w, N[j - 1]);
+        if (d === 3 || d === -3) { s[i] = j; e[i] = d / 3; }
+      }
+    }
+    return { s, e };
+  }
+  // On the vertices: g(e_k) = f[k] e_{t[k]}, read off column k of the matrix.
+  function axisAction(M) {
+    const t = [0], f = [0];
+    for (let k = 1; k <= 3; k++) {
+      const col = [M[0][k - 1], M[1][k - 1], M[2][k - 1]], j = col.findIndex((x) => x !== 0);
+      t[k] = j + 1;
+      f[k] = col[j];
+    }
+    return { t, f };
+  }
+  function cyclesOf(s, n) {
+    const seen = [], out = [];
+    for (let i = 1; i <= n; i++) {
+      if (seen[i]) continue;
+      const c = [];
+      for (let j = i; !seen[j]; j = s[j]) { seen[j] = true; c.push(j); }
+      if (c.length > 1) out.push(c);
+    }
+    return out;
+  }
+  const permText = (s) => cyclesOf(s, 4).map((c) => "(" + c.join(" ") + ")").join("") || "1";
+  // τ permutes the axes, written x, y, z.
+  const tauHTML = (t) => cyclesOf(t, 3).map((c) => "(" + c.map((k) => `<i>${AX[k - 1]}</i>`).join(" ") + ")").join("") || "1";
+  function sign(s) {
+    const seen = [];
+    let n = 0;
+    for (let i = 1; i <= 4; i++) {
+      if (seen[i]) continue;
+      n++;
+      for (let j = i; !seen[j]; j = s[j]) seen[j] = true;
+    }
+    return (4 - n) % 2 ? -1 : 1;
+  }
+  const signText = (g) => (g > 0 ? "+1" : "−1");
+
+  // ---------- the 24 rotations ----------
+  const E = [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
+  const AX = ["x", "y", "z"];
+  const EL = [];
+  const byKey = new Map();
+  function addEl(o) {
+    o.M = o.ang ? roundM(rot(o.axis, o.ang)) : I3;
+    o.key = mkey(o.M);
+    const a = action(o.M), b = axisAction(o.M);
+    o.s = a.s;
+    o.e = a.e;
+    o.t = b.t;
+    o.perm = permText(o.s);
+    o.tau = tauHTML(o.t);
+    o.sgn = sign(o.s);
+    o.idx = EL.length;
+    EL.push(o);
+    byKey.set(o.key, o);
+    return o;
+  }
+  const ID = addEl({ cls: "id", axis: null, ang: 0 });
+  // Vertex axes are the coordinate axes; face axes go through the face centers; edge axes through opposite edge midpoints.
+  const HALF = [0, 1, 2].map((k) => addEl({ cls: "v2", axis: E[k], ang: PI, k }));
+  const FTURN = [0, 1, 2, 3].map((i) => [2 * PI / 3, -2 * PI / 3].map((ang) => addEl({ cls: "f3", axis: N[i], ang, i: i + 1 })));
+  const QUARTER = [0, 1, 2].map((k) => [PI / 2, -PI / 2].map((ang) => addEl({ cls: "v4", axis: E[k], ang, k })));
+  // Ordered so that the transpositions come out as (1 2), (1 3), (1 4), (2 3), (2 4), (3 4).
+  const EDGE = [[0, 1, 1], [1, 0, 1], [1, 1, 0], [1, -1, 0], [1, 0, -1], [0, 1, -1]].map((axis) => addEl({ cls: "e2", axis, ang: PI }));
+  // The cosets of V = {1, half-turns about the vertex axes}, one per permutation τ of the axes.
+  // Within a row: the two quarter-turns, then the two edge half-turns; or the four turns about face axes.
+  const COSETS = [
+    { t: [0, 1, 2, 3], why: "no axis moves", els: [ID, ...HALF] },
+    { t: [0, 2, 1, 3], why: "the x- and y-axes swap", els: [...QUARTER[2], EDGE[2], EDGE[3]] },
+    { t: [0, 3, 2, 1], why: "the x- and z-axes swap", els: [...QUARTER[1], EDGE[1], EDGE[4]] },
+    { t: [0, 1, 3, 2], why: "the y- and z-axes swap", els: [...QUARTER[0], EDGE[0], EDGE[5]] },
+    { t: [0, 2, 3, 1], why: "x → y → z → x", els: FTURN.map((r) => r[0]) },
+    { t: [0, 3, 1, 2], why: "x → z → y → x", els: FTURN.map((r) => r[1]) },
+  ];
+  const TOUR = {
+    sign: [ID, ...HALF, ...FTURN.flat(), ...QUARTER.flat(), ...EDGE],
+    cosets: COSETS.flatMap((c) => c.els),
+  };
+
+  const SUBS = "₀₁₂₃₄₅₆₇₈₉";
+  const MINUS = "−";
+  const HALFS = { "1": "1", "0.5": "½" };
+  const vSub = (i) => `<i>e</i><sub>${i}</sub>`;
+  const fSub = (i) => `<i>F</i><sub>${i}</sub>`;
+  function angText(a) {
+    const table = [[PI, "π"], [PI / 2, "π/2"], [-PI / 2, MINUS + "π/2"], [2 * PI / 3, "2π/3"], [-2 * PI / 3, MINUS + "2π/3"]];
+    for (const [v, t] of table) if (Math.abs(a - v) < 1e-9) return t;
+    return "0";
+  }
+  // An edge midpoint, as (0, ½, −½) and so on.
+  const halfText = (x) => (x === 0 ? "0" : (x < 0 ? MINUS : "") + "½");
+  function formulaHTML(M) {
+    const v = (j) => `<i>${AX[j]}</i>`;
+    const out = M.map((r) => {
+      const j = r.findIndex((x) => x !== 0);
+      return (r[j] < 0 ? MINUS : "") + v(j);
+    });
+    return `(${v(0)}, ${v(1)}, ${v(2)}) ↦ (${out.join(", ")})`;
+  }
+  const plain = (html) => html.replace(/<sub>(?:<i>)?(\d)(?:<\/i>)?<\/sub>/g, (m, d) => SUBS[d]).replace(/<[^>]+>/g, "");
+
+  function nameHTML(el) {
+    switch (el.cls) {
+      case "id": return "Identity";
+      case "v2": return `Half-turn about the <i>${AX[el.k]}</i>-axis`;
+      case "v4": return `Quarter-turn about the <i>${AX[el.k]}</i>-axis`;
+      case "f3": return `Turn by ${angText(el.ang)} about the axis through the center of ${fSub(el.i)}`;
+      case "e2": return `Half-turn about the axis through (${el.axis.map((x) => halfText(x / 2)).join(", ")})`;
+    }
+    return "";
+  }
+  function aboutHTML(el) {
+    switch (el.cls) {
+      case "id": return "Every face and every vertex stays put.";
+      case "v2": return `The axis joins the opposite vertices ±${vSub(el.k + 1)}. One of 3 half-turns. It moves no axis, so it is in <i>V</i>.`;
+      case "v4": return `The axis joins the opposite vertices ±${vSub(el.k + 1)}. One of 6 quarter-turns.`;
+      case "f3": return `The axis joins the centers of ${fSub(el.i)} and −${fSub(el.i)}. One of 8 such turns.`;
+      case "e2": return "The axis joins the midpoints of two opposite edges. One of 6 half-turns.";
+    }
+    return "";
+  }
+  const tagHTML = (g) => (g > 0 ? '<span class="tag even">even</span>' : '<span class="tag odd">odd</span>');
+
+  // ---------- the solid, as an intersection of half-spaces n·x ≤ d ----------
+  function buildSolid(verts, planes) {
+    const faces = planes.map((pl) => {
+      const idx = verts.map((v, i) => i).filter((i) => Math.abs(dot(pl.n, verts[i]) - pl.d) < 1e-9);
+      const c = mul(idx.reduce((acc, i) => add(acc, verts[i]), [0, 0, 0]), 1 / idx.length);
+      const nu = unit(pl.n), s0 = unit(sub(verts[idx[0]], c)), t0 = cross(nu, s0);
+      const ang = (i) => { const d = sub(verts[i], c); return Math.atan2(dot(d, t0), dot(d, s0)); };
+      idx.sort((a, b) => ang(a) - ang(b));
+      return { n: pl.n, nu, d: pl.d, idx, c, ...pl.info };
+    });
+    const edges = [], seen = new Map();
+    faces.forEach((f, fi) => {
+      f.idx.forEach((a, k) => {
+        const b = f.idx[(k + 1) % f.idx.length], key = Math.min(a, b) + "-" + Math.max(a, b);
+        if (seen.has(key)) edges[seen.get(key)].faces.push(fi);
+        else { seen.set(key, edges.length); edges.push({ a, b, faces: [fi] }); }
+      });
+    });
+    const vertFaces = verts.map((v, i) => faces.map((f, fi) => (f.idx.includes(i) ? fi : -1)).filter((x) => x >= 0));
+    return { verts, planes, faces, edges, vertFaces };
+  }
+  // The vertices ±e_k (vertex k + 1, sign sg), and the faces e·F_i, with normal e·N[i-1].
+  const VERTS = [], VINFO = [];
+  for (let k = 0; k < 3; k++) for (const sg of [1, -1]) { VERTS.push(mul(E[k], sg)); VINFO.push({ k, sg }); }
+  const OCTA = buildSolid(VERTS, [1, 2, 3, 4].flatMap((i) => [1, -1].map((e) => ({ n: mul(N[i - 1], e), d: 1, info: { i, e } }))));
+  // The face centers are the corners of a cube; two corners are joined when their faces share an edge.
+  const CUBE_EDGES = OCTA.edges.map((ed) => ed.faces);
+  // Distance from the center to the surface along the unit vector u.
+  function exitDist(S, u) {
+    let best = Infinity;
+    for (const pl of S.planes) { const k = dot(pl.n, u); if (k > 1e-9) best = Math.min(best, pl.d / k); }
+    return best;
+  }
+
+  // ---------- state ----------
+  // base and hist describe the position before the current move; cur.histAfter, after it.
+  // cur.p is how far the move has turned (0 to 1); cur.tau is its clock (eased into p).
+  let group = "sign";
+  let base = I3, hist = [], cur = null;
+  const queue = [], RESET = { reset: true };
+  let touring = false, tourTok = 0, waiters = [];
+  // startTok invalidates a pending shift-click start; shownTransit records whether the panels show a move in progress (set by renderPos).
+  let startTok = 0, shownTransit = false;
+  let speed = "normal";
+  const SPEEDS = { slow: 2.1, normal: 1, fast: 0.45 };
+  let timeScale = 1;
+  const show = { faxes: true, vtags: true, cube: false, axes: true, names: true };
+  let hoverEl = null;
+  const reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const ease = (t) => 0.5 - 0.5 * Math.cos(PI * t);
+  const easeInv = (p) => Math.acos(clamp(1 - 2 * p, -1, 1)) / PI;
+  const durationOf = (el) => (el.ang ? (760 + 640 * Math.abs(el.ang) / (PI / 2)) * SPEEDS[speed] * timeScale : 0);
+
+  const store = {
+    get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* storage unavailable */ } },
+  };
+
+  function orientation() {
+    if (!cur || !cur.el.ang || cur.p <= 0) return base;
+    if (cur.p >= 1) return mm(cur.el.M, base);
+    return mm(rot(cur.el.axis, cur.p * cur.el.ang), base);
+  }
+  // The settled position, or null while a move is part way through.
+  function posState() {
+    if (!cur || cur.p <= 0) return { G: base, h: hist };
+    if (cur.p >= 1) return { G: mm(cur.el.M, base), h: cur.histAfter };
+    return null;
+  }
+
+  function finalize() {
+    if (!cur) return;
+    if (cur.p > 0 && cur.p < 1) cur.p = cur.p >= 0.5 ? 1 : 0;
+    if (cur.p >= 1) { base = mm(cur.el.M, base); hist = cur.histAfter; }
+    cur = null;
+  }
+  function startEl(el, kind) {
+    finalize();
+    kind = kind || "move";
+    cur = { kind, el, p: 0, tau: 0, dir: 1, playing: true, histAfter: kind === "reset" ? [] : hist.concat(el.idx) };
+    renderAll();
+    kick();
+  }
+  function preload(el) {
+    base = I3;
+    hist = [];
+    cur = { kind: "move", el, p: 0, tau: 0, dir: 1, playing: false, histAfter: [el.idx] };
+  }
+  function pump() {
+    if (cur && cur.playing) return;
+    if (cur && cur.p > 0 && cur.p < 1) {
+      if (queue.length) { cur.playing = true; kick(); }
+      return;
+    }
+    const next = queue.shift();
+    if (!next) return;
+    if (next === RESET) doReset();
+    else startEl(next);
+  }
+  function settle() {
+    cur.playing = false;
+    renderAll();
+    waiters.splice(0).forEach((f) => f());
+    pump();
+  }
+
+  function request(el, fromHome) {
+    stopTour();
+    cancelPending();
+    if (fromHome) {
+      queue.length = 0;
+      const tok = startTok;
+      snapHome(() => tok === startTok).then((ok) => { if (ok) startEl(el); });
+      return;
+    }
+    if (queue.length >= 4) return;
+    queue.push(el);
+    pump();
+  }
+  function playPause() {
+    if (!cur) return;
+    if (cur.playing) { cur.playing = false; renderAll(); return; }
+    if (!cur.el.ang) { cur.p = 0; cur.tau = 0; }
+    if (cur.p >= 1) { cur.p = 0; cur.tau = 0; }
+    cur.dir = 1;
+    cur.playing = true;
+    renderAll();
+    kick();
+  }
+  function undo() {
+    stopTour();
+    cancelPending();
+    queue.length = 0;
+    if (cur && cur.p > 0) {
+      cur.dir = -1;
+      cur.playing = true;
+      renderAll();
+      kick();
+      return;
+    }
+    finalize();
+    if (!hist.length) { renderAll(); return; }
+    const el = EL[hist[hist.length - 1]];
+    const histAfter = hist.slice();
+    base = mm(tr(el.M), base);
+    hist = hist.slice(0, -1);
+    cur = { kind: "move", el, p: 1, tau: 1, dir: -1, playing: true, histAfter };
+    renderAll();
+    kick();
+  }
+  function doReset() {
+    finalize();
+    startEl(byKey.get(mkey(tr(base))), "reset");
+  }
+  function reset() {
+    stopTour();
+    cancelPending();
+    queue.length = 0;
+    if (cur && (cur.playing || (cur.p > 0 && cur.p < 1))) {
+      queue.push(RESET);
+      cur.playing = true;
+      kick();
+      return;
+    }
+    doReset();
+  }
+  // Fade back to the identity. Resolves false, changing nothing, if the start was superseded during the fade.
+  function snapHome(current) {
+    return new Promise((resolve) => {
+      const done = () => {
+        if (!current()) { resolve(false); return; }
+        base = I3;
+        hist = [];
+        cur = null;
+        renderAll();
+        kick();
+        vp.classList.remove("fading");
+        resolve(true);
+      };
+      if (reduced) { done(); return; }
+      vp.classList.add("fading");
+      setTimeout(done, 180);
+    });
+  }
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  async function playAll() {
+    cancelPending();
+    if (touring) { stopTour(); return; }
+    touring = true;
+    const tok = ++tourTok;
+    queue.length = 0;
+    renderControls();
+    for (const el of TOUR[group]) {
+      if (!(await snapHome(() => tok === tourTok))) return;
+      startEl(el);
+      await new Promise((r) => waiters.push(r));
+      if (tok !== tourTok) return;
+      await sleep((el.ang ? 700 : 1300) * SPEEDS[speed] * timeScale);
+      if (tok !== tourTok) return;
+    }
+    touring = false;
+    renderControls();
+  }
+  function cancelPending() {
+    startTok++;
+    vp.classList.remove("fading");
+  }
+  function stopTour() {
+    if (!touring) return;
+    touring = false;
+    tourTok++;
+    vp.classList.remove("fading");
+    waiters.splice(0).forEach((f) => f());
+    renderControls();
+  }
+  // Rearranging the list changes neither the position nor the move.
+  function setGroup(g) {
+    if (g !== "sign" && g !== "cosets") return;
+    if (g === group) return;
+    stopTour();
+    group = g;
+    store.set("octa.group", group);
+    hoverEl = null;
+    buildCatalog();
+    renderCatalogState();
+    renderControls();
+    kick();
+  }
+
+  // ---------- camera ----------
+  const DIST = 14, RS = 1.72;
+  const DEFAULT_VIEW = { az: 0.12, el: 0.38 };
+  const view = { az: DEFAULT_VIEW.az, el: DEFAULT_VIEW.el };
+  let viewSaved = null, camAnim = null, cam = null;
+  function camFrame() {
+    const ce = Math.cos(view.el);
+    const c = [ce * Math.cos(view.az), ce * Math.sin(view.az), Math.sin(view.el)];
+    const f = mul(c, -1), r = unit(cross(f, [0, 0, 1])), u = cross(r, f);
+    return { c, f, r, u, pos: mul(c, DIST) };
+  }
+  function animateView(to) {
+    let daz = to.az - view.az;
+    daz = (((daz + PI) % (2 * PI)) + 2 * PI) % (2 * PI) - PI;
+    if (reduced) { view.az += daz; view.el = to.el; kick(); return; }
+    camAnim = { az0: view.az, el0: view.el, daz, del: to.el - view.el, t0: performance.now(), dur: 650 };
+    kick();
+  }
+  function viewAlongAxis() {
+    if (viewSaved) {
+      animateView(viewSaved);
+      viewSaved = null;
+    } else {
+      const el = cur && cur.el;
+      if (!el || !el.axis) return;
+      const a = unit(el.axis);
+      viewSaved = { az: view.az, el: view.el };
+      animateView({ az: Math.abs(a[2]) > 0.999 ? view.az : Math.atan2(a[1], a[0]), el: clamp(Math.asin(a[2]), -1.5, 1.5) });
+    }
+    renderControls();
+  }
+
+  // ---------- drawing ----------
+  const vp = $("viewport"), cv = $("cv"), ctx = cv.getContext("2d");
+  let W = 0, H = 0, DPR = 1, F = 1, CX = 0, CY = 0;
+  const UIFONT = getComputedStyle(document.documentElement).getPropertyValue("--font-ui").trim();
+  const MATHFONT = getComputedStyle(document.documentElement).getPropertyValue("--font-math").trim();
+  let THEME = null;
+  function hexRgb(h) {
+    h = h.replace("#", "");
+    if (h.length === 3) h = h.split("").map((c) => c + c).join("");
+    const n = parseInt(h, 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  }
+  function theme() {
+    if (THEME) return THEME;
+    const cs = getComputedStyle(document.documentElement);
+    const g = (n) => cs.getPropertyValue(n).trim();
+    THEME = {
+      ink: g("--ink"), muted: g("--muted"), stage: g("--stage"),
+      d: [null, g("--d1"), g("--d2"), g("--d3"), g("--d4")], discInk: g("--disc-ink"),
+      face: hexRgb(g("--face")), faceA: parseFloat(g("--face-alpha")) || 0.3,
+      shade: hexRgb(g("--shade")), shadeA: parseFloat(g("--shade-alpha")) || 0.2,
+      axis: g("--axis"), coord: g("--coord"), ghost: g("--ghost"),
+    };
+    return THEME;
+  }
+  const rgba = (c, a) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
+  function shadeFill(c, k, a) { return rgba(c.map((x) => Math.round(clamp(x * k, 0, 255))), a); }
+
+  function resize() {
+    // The canvas fills the viewport inside its border, so size the bitmap from the canvas itself.
+    const r = cv.getBoundingClientRect();
+    DPR = Math.min(2, window.devicePixelRatio || 1);
+    W = r.width;
+    H = r.height;
+    cv.width = Math.max(1, Math.round(W * DPR));
+    cv.height = Math.max(1, Math.round(H * DPR));
+    F = 0.47 * Math.min(W, H) * Math.sqrt(DIST * DIST - RS * RS) / RS;
+    CX = W / 2;
+    CY = H / 2;
+    kick();
+  }
+  function proj(P) {
+    const v = sub(P, cam.pos), z = dot(v, cam.f);
+    return [CX + F * dot(v, cam.r) / z, CY - F * dot(v, cam.u) / z, z];
+  }
+  // Is P behind (or inside) the solid as seen from the camera? Clip the sight line against each face plane.
+  function occluded(P, Ot, S) {
+    const A = mv(Ot, cam.pos), B = mv(Ot, sub(P, cam.pos));
+    let tE = -Infinity, tL = Infinity;
+    for (const pl of S.planes) {
+      const nm = pl.d - dot(pl.n, A), den = dot(pl.n, B);
+      if (Math.abs(den) < 1e-12) { if (nm < 0) return false; continue; }
+      const t = nm / den;
+      if (den < 0) tE = Math.max(tE, t); else tL = Math.min(tL, t);
+      if (tE > tL) return false;
+    }
+    return tE < 1 - 1e-4 && tL > 0;
+  }
+  // Split a polyline into short pieces, each marked hidden or visible.
+  function classify(item, occ) {
+    const runs = [];
+    let run = null;
+    const pts = item.pts;
+    for (let k = 0; k + 1 < pts.length; k++) {
+      const A = pts[k], B = pts[k + 1], n = Math.max(1, Math.ceil(norm(sub(B, A)) / 0.03));
+      for (let m = 0; m < n; m++) {
+        const a = lerp(A, B, m / n), b = lerp(A, B, (m + 1) / n);
+        const hid = item.inside ? true : occ(lerp(a, b, 0.5));
+        if (!run || run.hidden !== hid) { run = { hidden: hid, pts: [proj(a)] }; runs.push(run); }
+        run.pts.push(proj(b));
+      }
+    }
+    return runs;
+  }
+  function strokeRuns(item, runs, hidden) {
+    const a = hidden ? item.hidA : item.visA;
+    if (!a) return;
+    ctx.beginPath();
+    let any = false;
+    for (const r of runs) {
+      if (r.hidden !== hidden) continue;
+      any = true;
+      ctx.moveTo(r.pts[0][0], r.pts[0][1]);
+      for (let k = 1; k < r.pts.length; k++) ctx.lineTo(r.pts[k][0], r.pts[k][1]);
+    }
+    if (!any) return;
+    ctx.globalAlpha = a;
+    ctx.strokeStyle = item.color;
+    ctx.lineWidth = item.w;
+    ctx.setLineDash(item.dash || []);
+    ctx.stroke();
+    if (item.arrow) {
+      const last = runs[runs.length - 1];
+      if (last.hidden === hidden && last.pts.length > 1) {
+        const p = last.pts[last.pts.length - 1];
+        let q = last.pts[0];
+        for (let k = last.pts.length - 2; k >= 0; k--) { q = last.pts[k]; if (Math.hypot(p[0] - q[0], p[1] - q[1]) > 6) break; }
+        arrowHead(p, q, item.w * 2.2 + 5, item.color);
+      }
+    }
+  }
+  function arrowHead(p, q, size, color) {
+    const ang = Math.atan2(p[1] - q[1], p[0] - q[0]);
+    ctx.setLineDash([]);
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(p[0] + Math.cos(ang) * size * 0.35, p[1] + Math.sin(ang) * size * 0.35);
+    ctx.lineTo(p[0] - Math.cos(ang - 0.42) * size, p[1] - Math.sin(ang - 0.42) * size);
+    ctx.lineTo(p[0] - Math.cos(ang + 0.42) * size, p[1] - Math.sin(ang + 0.42) * size);
+    ctx.closePath();
+    ctx.fill();
+  }
+  function fillPoly(P2, idx, style) {
+    ctx.beginPath();
+    idx.forEach((i, k) => (k ? ctx.lineTo(P2[i][0], P2[i][1]) : ctx.moveTo(P2[i][0], P2[i][1])));
+    ctx.closePath();
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = style;
+    ctx.fill();
+  }
+  // The dot at the center of face ±F_i: filled for F_i, open for −F_i.
+  function disc(p, r, i, filled, alpha, T) {
+    ctx.globalAlpha = alpha;
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.arc(p[0], p[1], r, 0, 2 * PI);
+    if (filled) {
+      ctx.fillStyle = T.d[i];
+      ctx.fill();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = T.stage;
+      ctx.stroke();
+    } else {
+      ctx.fillStyle = T.stage;
+      ctx.fill();
+      ctx.lineWidth = 2.6;
+      ctx.strokeStyle = T.d[i];
+      ctx.stroke();
+    }
+    ctx.fillStyle = filled ? T.discInk : T.d[i];
+    ctx.font = `700 ${Math.round(r * 1.12)}px ${UIFONT}`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(String(i), p[0], p[1] + r * 0.06);
+  }
+  // The tag at the vertex ±e_k: the letter of its axis, filled at e_k, open at −e_k.
+  function vtag(p, h, k, filled, alpha, T) {
+    ctx.globalAlpha = alpha;
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(p[0] - h, p[1] - h, 2 * h, 2 * h, h * 0.3);
+    else ctx.rect(p[0] - h, p[1] - h, 2 * h, 2 * h);
+    ctx.fillStyle = filled ? T.ink : T.stage;
+    ctx.fill();
+    ctx.lineWidth = filled ? 1.5 : 2.2;
+    ctx.strokeStyle = filled ? T.stage : T.ink;
+    ctx.stroke();
+    ctx.fillStyle = filled ? T.stage : T.ink;
+    ctx.font = `italic 400 ${Math.round(h * 1.7)}px ${MATHFONT}`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(AX[k], p[0], p[1] - h * 0.12);
+  }
+  // Draws "F_i" or "−F_i" centered at p; returns its width when measure is set.
+  function fName(p, i, neg, alpha, T, measure) {
+    const fs = 15;
+    ctx.font = `400 ${fs}px ${MATHFONT}`;
+    const wm = neg ? ctx.measureText(MINUS).width : 0;
+    ctx.font = `italic 400 ${fs}px ${MATHFONT}`;
+    const wv = ctx.measureText("F").width;
+    ctx.font = `400 ${Math.round(fs * 0.7)}px ${MATHFONT}`;
+    const ws = ctx.measureText(String(i)).width;
+    const w = wm + wv + ws + 1;
+    if (measure) return w;
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = T.muted;
+    ctx.textBaseline = "alphabetic";
+    ctx.textAlign = "left";
+    let x = p[0] - w / 2;
+    const y = p[1] + fs * 0.3;
+    if (neg) { ctx.font = `400 ${fs}px ${MATHFONT}`; ctx.fillText(MINUS, x, y); x += wm; }
+    ctx.font = `italic 400 ${fs}px ${MATHFONT}`;
+    ctx.fillText("F", x, y);
+    x += wv + 1;
+    ctx.font = `400 ${Math.round(fs * 0.7)}px ${MATHFONT}`;
+    ctx.fillText(String(i), x, y + fs * 0.25);
+    return w;
+  }
+
+  const AXLEN = 1.5, AXLAB = 1.68;
+  let labelsDrawn = { names: [], marks: [] }, markR = 12, markH = 8;
+  function draw() {
+    if (!W || !H) return;
+    const T = theme();
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    ctx.clearRect(0, 0, W, H);
+    cam = camFrame();
+    const S = OCTA;
+    const O = orientation(), Ot = tr(O);
+    const occ = (P) => occluded(P, Ot, S);
+    const Wv = S.verts.map((v) => mv(O, v)), Pv = Wv.map(proj);
+    const Wc = S.faces.map((f) => mv(O, f.c));
+    const front = S.faces.map((f, fi) => dot(mv(O, f.n), sub(cam.pos, Wc[fi])) > 0);
+    const light = unit(add(add(mul(cam.r, -0.45), mul(cam.u, 0.8)), mul(cam.c, 0.6)));
+    const items = [];
+    const line = (pts, o) => items.push(Object.assign({ pts }, o));
+
+    if (show.axes) {
+      for (let k = 0; k < 3; k++) line([mul(E[k], -AXLEN), mul(E[k], AXLEN)], { color: T.coord, w: 1.2, hidA: 0.4, visA: 0.95, arrow: true });
+    }
+    if (show.faxes) {
+      for (let i = 1; i <= 4; i++) line([mv(O, mul(N[i - 1], 1 / 3)), mv(O, mul(N[i - 1], -1 / 3))], { color: T.d[i], w: 3.4, inside: true, hidA: 1, visA: 1 });
+    }
+    if (show.cube) {
+      for (const [a, b] of CUBE_EDGES) line([Wc[a], Wc[b]], { color: T.ink, w: 1.3, dash: [3, 4], inside: true, hidA: 0.55, visA: 0.55 });
+    }
+    // Where the solid started: a fixed dashed outline.
+    for (const ed of S.edges) line([S.verts[ed.a], S.verts[ed.b]], { color: T.ghost, w: 1.25, dash: [4, 4], hidA: 0.4, visA: 0.85, ghost: true });
+    // The axis of the current move, with an arc showing the angle turned so far.
+    const ax = cur && cur.el.axis ? cur.el : null;
+    if (ax) {
+      const a = unit(ax.axis), dp = exitDist(S, a), dn = exitDist(S, mul(a, -1));
+      line([mul(a, -(dn + 0.32)), mul(a, dp + 0.4)], { color: T.axis, w: 2.4, hidA: 0.55, visA: 1, arrow: true });
+      const c0 = mul(a, dp + 0.2), rr = 0.27;
+      const e1 = unit(cross(a, Math.abs(a[2]) < 0.9 ? [0, 0, 1] : [1, 0, 0])), e2 = cross(a, e1);
+      const arcPts = (t0, t1) => {
+        const n = Math.max(2, Math.ceil(Math.abs(t1 - t0) / 0.08));
+        const pts = [];
+        for (let k = 0; k <= n; k++) { const t = t0 + (t1 - t0) * k / n; pts.push(add(c0, add(mul(e1, rr * Math.cos(t)), mul(e2, rr * Math.sin(t))))); }
+        return pts;
+      };
+      line(arcPts(0, ax.ang), { color: T.axis, w: 1.3, dash: [2, 4], hidA: 0.25, visA: 0.5 });
+      const sw = cur.p * ax.ang;
+      if (Math.abs(sw) > 0.02) line(arcPts(0, sw), { color: T.axis, w: 2.4, hidA: 0.5, visA: 1, arrow: Math.abs(sw) > 0.2 });
+    }
+    if (hoverEl && hoverEl.axis && (!ax || hoverEl !== ax)) {
+      const a = unit(hoverEl.axis), dp = exitDist(S, a), dn = exitDist(S, mul(a, -1));
+      line([mul(a, -(dn + 0.3)), mul(a, dp + 0.36)], { color: T.axis, w: 1.6, dash: [6, 5], hidA: 0.3, visA: 0.55 });
+    }
+
+    const runs = items.map((it) => classify(it, occ));
+    const r = clamp(F / DIST * 0.085, 9, 13.5), h = r * 0.72;
+    markR = r;
+    markH = h;
+    const faceStyle = (f, k, a) => (f.e > 0 ? shadeFill(T.shade, k, T.shadeA * a / T.faceA) : shadeFill(T.face, k, a));
+
+    // 1. faces facing away, and their edges
+    S.faces.forEach((f, fi) => { if (!front[fi]) fillPoly(Pv, f.idx, faceStyle(f, 0.9, T.faceA * 0.35)); });
+    ctx.globalAlpha = 0.75;
+    ctx.strokeStyle = T.muted;
+    ctx.lineWidth = 1.1;
+    ctx.setLineDash([5, 5]);
+    ctx.beginPath();
+    for (const ed of S.edges) {
+      if (ed.faces.some((fi) => front[fi])) continue;
+      ctx.moveTo(Pv[ed.a][0], Pv[ed.a][1]);
+      ctx.lineTo(Pv[ed.b][0], Pv[ed.b][1]);
+    }
+    ctx.stroke();
+
+    // 2. everything behind or inside the solid
+    items.forEach((it, k) => strokeRuns(it, runs[k], true));
+    const marks = [];
+    S.faces.forEach((f, fi) => marks.push({ kind: "disc", p: proj(Wc[fi]), i: f.i, filled: f.e > 0, hidden: !front[fi] }));
+    if (show.vtags) S.verts.forEach((v, vi) => marks.push({ kind: "tag", p: Pv[vi], k: VINFO[vi].k, filled: VINFO[vi].sg > 0, hidden: !S.vertFaces[vi].some((fi) => front[fi]) }));
+    const drawMark = (m, alpha, scale) => (m.kind === "disc" ? disc(m.p, r * scale, m.i, m.filled, alpha, T) : vtag(m.p, h * scale, m.k, m.filled, alpha, T));
+
+    // Names of the fixed faces ±F_i, and the axis letters. Each name tries spots around its face center and takes the first
+    // that stays on the canvas, off the dots and tags, and off the names already placed; if none is free, it is left out.
+    // The dots and tags to avoid are where they sit whenever the solid is at rest (the fixed face centers and vertices),
+    // so the names hold still while it turns.
+    labelsDrawn = { names: [], marks: [], axes: [] };
+    const placed = [];
+    const restFront = S.faces.map((f) => dot(f.n, sub(cam.pos, f.c)) > 0);
+    S.faces.forEach((f, fi) => { const q = proj(f.c); placed.push([q[0] - r, q[1] - r, q[0] + r, q[1] + r]); if (restFront[fi]) labelsDrawn.marks.push([q[0] - r, q[1] - r, q[0] + r, q[1] + r]); });
+    if (show.vtags) S.verts.forEach((v, vi) => { const q = proj(v); placed.push([q[0] - h, q[1] - h, q[0] + h, q[1] + h]); if (S.vertFaces[vi].some((fi) => restFront[fi])) labelsDrawn.marks.push([q[0] - h, q[1] - h, q[0] + h, q[1] + h]); });
+    const axisLabels = [];
+    if (show.axes) {
+      for (let k = 0; k < 3; k++) {
+        // Just past the arrow tip, or beside the tip when that would fall off the canvas.
+        let p = proj(mul(E[k], AXLAB));
+        if (p[0] < 10 || p[0] > W - 10 || p[1] < 12 || p[1] > H - 12) {
+          const t = proj(mul(E[k], AXLEN)), o = proj([0, 0, 0]);
+          const d = Math.hypot(t[0] - o[0], t[1] - o[1]) || 1, ux = (t[0] - o[0]) / d, uy = (t[1] - o[1]) / d;
+          p = [clamp(t[0] - uy * 14, 10, W - 10), clamp(t[1] + ux * 14, 12, H - 12)];
+        }
+        axisLabels.push({ k, p, hidden: occ(mul(E[k], AXLAB)) });
+        placed.push([p[0] - 8, p[1] - 10, p[0] + 8, p[1] + 10]);
+        labelsDrawn.axes.push([p[0], p[1]]);
+      }
+    }
+    const names = [];
+    if (show.names) {
+      const P0 = proj([0, 0, 0]);
+      ctx.save();
+      // Faces toward the viewer first, nearest first.
+      const order = S.faces.map((f, fi) => ({ f, fi, q: proj(f.c) })).sort((a, b) => (restFront[b.fi] - restFront[a.fi]) || (a.q[2] - b.q[2]));
+      for (const { f, fi, q } of order) {
+        let dx = q[0] - P0[0], dy = q[1] - P0[1];
+        const d = Math.hypot(dx, dy);
+        if (d < 1) { dx = 0; dy = -1; } else { dx /= d; dy /= d; }
+        const w = fName(q, f.i, f.e < 0, 1, T, true);
+        let box = null, at = null;
+        for (const turn of [0, 0.7, -0.7, 1.4, -1.4, 2.1, -2.1, PI]) {
+          const ux = dx * Math.cos(turn) - dy * Math.sin(turn), uy = dx * Math.sin(turn) + dy * Math.cos(turn);
+          // Far enough out that the box clears the dot in every direction.
+          const reach = r + 4 + Math.abs(ux) * w / 2 + Math.abs(uy) * 9;
+          const c = [q[0] + ux * reach, q[1] + uy * reach];
+          const b = [c[0] - w / 2 - 2, c[1] - 9, c[0] + w / 2 + 2, c[1] + 9];
+          if (b[0] < 0 || b[1] < 0 || b[2] > W || b[3] > H) continue;
+          if (placed.some((o) => b[0] < o[2] && o[0] < b[2] && b[1] < o[3] && o[1] < b[3])) continue;
+          box = b;
+          at = c;
+          break;
+        }
+        if (!box) continue;
+        placed.push(box);
+        names.push({ p: at, i: f.i, neg: f.e < 0, hidden: !restFront[fi] });
+        if (restFront[fi]) labelsDrawn.names.push(box);
+      }
+      ctx.restore();
+    }
+    names.filter((n) => n.hidden).forEach((n) => fName(n.p, n.i, n.neg, 0.35, T));
+    marks.filter((m) => m.hidden).forEach((m) => drawMark(m, 0.45, 0.9));
+
+    // 3. faces toward the viewer
+    S.faces.forEach((f, fi) => {
+      if (!front[fi]) return;
+      const lam = Math.max(0, dot(unit(mv(O, f.n)), light));
+      fillPoly(Pv, f.idx, faceStyle(f, 0.86 + 0.3 * lam, T.faceA));
+    });
+    // 4. the starting outline, then the solid's front edges over it
+    items.forEach((it, k) => { if (it.ghost) strokeRuns(it, runs[k], false); });
+    ctx.globalAlpha = 1;
+    ctx.setLineDash([]);
+    ctx.strokeStyle = T.ink;
+    ctx.lineWidth = 2;
+    ctx.lineJoin = "round";
+    ctx.beginPath();
+    for (const ed of S.edges) {
+      if (!ed.faces.some((fi) => front[fi])) continue;
+      ctx.moveTo(Pv[ed.a][0], Pv[ed.a][1]);
+      ctx.lineTo(Pv[ed.b][0], Pv[ed.b][1]);
+    }
+    ctx.stroke();
+    // 5. everything in front
+    items.forEach((it, k) => { if (!it.ghost) strokeRuns(it, runs[k], false); });
+    ctx.fillStyle = T.muted;
+    ctx.font = `italic 400 18px ${MATHFONT}`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    for (const L of axisLabels) {
+      ctx.globalAlpha = L.hidden ? 0.4 : 1;
+      ctx.fillText(AX[L.k], L.p[0], L.p[1]);
+    }
+    names.filter((n) => !n.hidden).forEach((n) => fName(n.p, n.i, n.neg, 0.95, T));
+    marks.filter((m) => !m.hidden).sort((a, b) => b.p[2] - a.p[2]).forEach((m) => drawMark(m, 1, 1));
+    ctx.globalAlpha = 1;
+  }
+
+  // ---------- animation loop ----------
+  let raf = 0, lastTs = 0;
+  function kick() {
+    if (!raf) { lastTs = performance.now(); raf = requestAnimationFrame(frame); }
+  }
+  function frame(ts) {
+    raf = 0;
+    const dt = clamp(ts - lastTs, 0, 80);
+    lastTs = ts;
+    let more = false;
+    if (cur && cur.playing) {
+      const dur = durationOf(cur.el);
+      cur.tau = dur > 0 ? cur.tau + cur.dir * dt / dur : (cur.dir > 0 ? 1 : 0);
+      if (cur.dir > 0 && cur.tau >= 1) { cur.tau = 1; cur.p = 1; settle(); }
+      else if (cur.dir < 0 && cur.tau <= 0) { cur.tau = 0; cur.p = 0; settle(); }
+      else {
+        cur.p = ease(clamp(cur.tau, 0, 1));
+        // On entering the middle of a move, show it as in progress; after that only the angle changes.
+        if (!shownTransit) renderAll(); else updateLive();
+      }
+      if (cur && cur.playing) more = true;
+    }
+    if (camAnim) {
+      const t = clamp((ts - camAnim.t0) / camAnim.dur, 0, 1), k = ease(t);
+      view.az = camAnim.az0 + camAnim.daz * k;
+      view.el = camAnim.el0 + camAnim.del * k;
+      if (t >= 1) camAnim = null; else more = true;
+    }
+    draw();
+    if (more && !raf) raf = requestAnimationFrame(frame);
+  }
+
+  // ---------- panels ----------
+  function chip(el) {
+    return `<button class="rot cyc" type="button" data-i="${el.idx}" title="${plain(nameHTML(el))}, θ = ${angText(el.ang)}: ${plain(formulaHTML(el.M))}">${el.perm}</button>`;
+  }
+  function table(cols, rows, labels) {
+    let h = `<div class="tbl" style="--cols:${cols.length}"><span></span>`;
+    h += cols.map((c) => `<span class="colh">${c}</span>`).join("");
+    rows.forEach((row, k) => { h += `<span class="rowh">${labels[k]}</span>` + row.map(chip).join(""); });
+    return h + "</div>";
+  }
+  const grp = (label, body, attrs) => `<div class="grp"${attrs || ""}><p class="grp-label">${label}</p>${body}</div>`;
+  const block = (cls, title, count, note, body) =>
+    `<section class="block ${cls}"><div class="block-head"><h3>${title}</h3><span class="count">${count}</span></div><p class="block-note">${note}</p>${body}</section>`;
+  function buildCatalog() {
+    const ax = AX.map((a) => `<i>${a}</i>`);
+    let h = `<div class="cat-head"><h2 class="eyebrow">The 24 rotations</h2>
+      <p class="legend"><span><span class="sw pos"></span>now</span><span><span class="sw move"></span>this move</span></p></div>`;
+    if (group === "sign") {
+      const identity = `<div class="grp inline"><p class="grp-label">Identity</p><div class="chips one">${chip(ID)}</div></div>`;
+      h += block("even", "Even permutations", "12", "They keep the shaded faces shaded and form <i>A</i><sub>4</sub>.",
+        identity + grp("Half-turns about vertex axes", table(ax, [HALF], [""])) +
+        grp("Turns about face axes", table(["2π/3", MINUS + "2π/3"], FTURN, [1, 2, 3, 4].map(fSub))));
+      h += block("odd", "Odd permutations", "12", "These swap shaded and unshaded faces.",
+        grp("Quarter-turns about vertex axes", table(["π/2", MINUS + "π/2"], QUARTER, ax)) +
+        grp("Half-turns about edge axes", `<div class="chips six">${EDGE.map(chip).join("")}</div>`));
+      h += `<p class="sum">1 + 3 + 8 + 6 + 6 = 24 = |<i>S</i><sub>4</sub>|</p>`;
+    } else {
+      const rows = COSETS.map((c) => grp(`<span class="math"><i>τ</i> = ${tauHTML(c.t)}</span><span class="why">: ${c.why}</span>`,
+        `<div class="chips four">${c.els.map(chip).join("")}</div>`, ` data-tau="${c.t.join("")}"`)).join("");
+      h += block("cosets", "Cosets of <i>V</i>", "6 × 4",
+        "<i>τ</i> is how a rotation permutes the three vertex axes. The four with <i>τ</i> = 1 form <i>V</i>, and each row is a coset <i>gV</i>. So <i>S</i><sub>4</sub>/<i>V</i> ≅ <i>S</i><sub>3</sub>. (And <i>σ</i> is even exactly when <i>τ</i> is.)", rows);
+      h += `<p class="sum">6 · 4 = 24, so |<i>S</i><sub>4</sub>/<i>V</i>| = 6 = |<i>S</i><sub>3</sub>|</p>`;
+    }
+    $("catalog").innerHTML = h;
+  }
+
+  function renderMove() {
+    const el = cur && cur.el;
+    if (!el) {
+      $("mv-eyebrow").textContent = "This move";
+      $("mv-name").textContent = "Pick a rotation";
+      $("mv-class").innerHTML = "Click any rotation in the list to apply it.";
+      $("mv-formula").innerHTML = $("mv-angle").innerHTML = $("mv-perm").innerHTML = $("mv-tau").innerHTML = "–";
+      return;
+    }
+    let eb = "This move";
+    const rs = cur.kind === "reset";
+    if (cur.dir < 0) eb = cur.p <= 0 ? (rs ? "Reset undone. Play repeats it" : "Undone. Play repeats it") : (rs ? "Undoing the reset" : "Undoing this move");
+    else if (rs) eb = "Back to the start";
+    $("mv-eyebrow").textContent = eb;
+    $("mv-name").innerHTML = nameHTML(el);
+    $("mv-class").innerHTML = (el.cls === "id" ? "" : tagHTML(el.sgn)) + aboutHTML(el);
+    $("mv-formula").innerHTML = formulaHTML(el.M);
+    $("mv-angle").innerHTML = `<i>θ</i> = ${angText(el.ang)}`;
+    $("mv-perm").innerHTML = el.perm;
+    $("mv-tau").innerHTML = el.tau;
+  }
+  function renderPos() {
+    const st = posState();
+    shownTransit = !st;
+    const pill = $("pos-pill"), where = $("pos-where"), axes = $("pos-axes");
+    const dim = ["pos-sigma", "pos-detail"];
+    if (!st) {
+      pill.className = "pill transit";
+      pill.innerHTML = "Move in progress";
+      where.classList.add("stale");
+      $("pos-axesbox").classList.add("stale");
+      dim.forEach((id) => { $(id).style.opacity = "0.35"; });
+      return;
+    }
+    where.classList.remove("stale");
+    $("pos-axesbox").classList.remove("stale");
+    dim.forEach((id) => { $(id).style.opacity = ""; });
+    const { G, h } = st;
+    const a = action(G), b = axisAction(G), sg = sign(a.s), gEl = byKey.get(mkey(G));
+    pill.className = sg > 0 ? "pill" : "pill odd";
+    pill.innerHTML = sg > 0 ? "Even: shaded faces stay shaded" : "Odd: shaded and unshaded faces swap";
+    where.innerHTML = [1, 2, 3, 4].map((i) =>
+      `<li><span class="disc" style="--dc: var(--d${i})">${i}</span><span><i>g</i>(${fSub(i)}) = ${a.e[i] < 0 ? MINUS : ""}${fSub(a.s[i])}</span></li>`).join("");
+    $("pos-perm").textContent = permText(a.s);
+    $("pos-sgn").textContent = signText(sg);
+    axes.innerHTML = [1, 2, 3].map((k) =>
+      `<li><span class="vtag">${AX[k - 1]}</span><span><i>g</i>(${vSub(k)}) = ${b.f[k] < 0 ? MINUS : ""}${vSub(b.t[k])}</span></li>`).join("");
+    $("pos-tau").innerHTML = tauHTML(b.t);
+    const inV = b.t[1] === 1 && b.t[2] === 2;
+    $("pos-inv").innerHTML = inV ? "(<i>g</i> ∈ <i>V</i>)" : "";
+    const lines = [];
+    lines.push(`<p><i>g</i> is the map <span class="math">${formulaHTML(G)}</span>.</p>`);
+    if (h.length >= 2) {
+      // Each factor stays on one line; a long product breaks after a "·".
+      const factors = h.slice().reverse().map((i) => `<span class="nw">${EL[i].perm}</span>`);
+      if (factors.length <= 5) lines.push(`<p>Composing your ${h.length} moves, right to left: <i>σ</i>&nbsp;=&nbsp;<span class="math cyc">${factors.join("&nbsp;· ")}</span>.</p>`);
+      else lines.push(`<p><i>σ</i> is the product of your ${h.length} moves.</p>`);
+      lines.push(`<p>So <i>g</i> is one rotation: ${nameHTML(gEl)}.</p>`);
+    } else if (!h.length) {
+      lines.push("<p>At the start, <i>g</i> is the identity.</p>");
+    }
+    $("pos-detail").innerHTML = lines.join("");
+  }
+  function renderCatalogState() {
+    const st = posState();
+    const posKey = st ? mkey(st.G) : null;
+    const moveIdx = cur ? cur.el.idx : -1;
+    document.querySelectorAll(".rot[data-i]").forEach((b) => {
+      const el = EL[+b.dataset.i];
+      b.classList.toggle("is-pos", el.key === posKey);
+      b.classList.toggle("is-move", el.idx === moveIdx);
+    });
+  }
+  function updateLive() {
+    const el = cur && cur.el;
+    const deg = el ? Math.round(el.ang * 180 / PI) : 0;
+    const p = cur ? cur.p : 0;
+    const fmt = (d) => (d < 0 ? MINUS + -d : String(d)) + "°";
+    $("mv-live").textContent = el && el.ang ? `${fmt(Math.round(p * deg))} of ${fmt(deg)}` : "";
+    const sc = $("scrub");
+    sc.value = String(Math.round(p * 1000));
+    sc.disabled = !el || !el.ang;
+    $("play-label").textContent = cur && cur.playing ? "Pause" : cur && cur.el.ang && cur.p >= 1 ? "Replay" : "Play";
+  }
+  function renderControls() {
+    $("tour-label").textContent = touring ? "Stop" : "Play all 24";
+    $("btn-tour").setAttribute("aria-pressed", String(touring));
+    document.querySelectorAll("[data-group]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.group === group)));
+    document.querySelectorAll(".tog").forEach((b) => b.setAttribute("aria-pressed", String(!!show[b.dataset.show])));
+    document.querySelectorAll("[data-speed]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.speed === speed)));
+    const st = posState();
+    $("btn-undo").disabled = !(cur && cur.p > 0) && !hist.length;
+    $("btn-reset").disabled = !!st && mkey(st.G) === mkey(I3) && !(cur && cur.playing);
+    $("btn-play").disabled = !cur || !cur.el.ang;
+    $("btn-view").disabled = !(cur && cur.el.axis) && !viewSaved;
+    $("btn-view").setAttribute("aria-pressed", String(!!viewSaved));
+  }
+  function renderKey() {
+    $("key").innerHTML = `The octahedron is |<i>x</i>| + |<i>y</i>| + |<i>z</i>| ≤ 1, with vertices ±${vSub(1)}, ±${vSub(2)}, ±${vSub(3)} on the <i>x</i>-, <i>y</i>- and <i>z</i>-axes. ` +
+      `The shaded faces ${fSub(1)}, ${fSub(2)}, ${fSub(3)}, ${fSub(4)} lie in the planes <span class="nw"><i>x</i> + <i>y</i> + <i>z</i> = 1</span>, <span class="nw"><i>x</i> − <i>y</i> − <i>z</i> = 1</span>, <span class="nw">−<i>x</i> + <i>y</i> − <i>z</i> = 1</span>, <span class="nw">−<i>x</i> − <i>y</i> + <i>z</i> = 1</span>, and −<i>F<sub>i</sub></i> is the face opposite <i>F<sub>i</sub></i>. ` +
+      `Face axis <i>i</i> joins the centers of <i>F<sub>i</sub></i> (filled dot) and −<i>F<sub>i</sub></i> (open dot). The tag at ${vSub(1)} (filled) and −${vSub(1)} (open) is <i>x</i>, and so on. ` +
+      `<i>σ</i>(<i>i</i>) = <i>j</i> when <i>g</i>(<i>F<sub>i</sub></i>) = ±<i>F<sub>j</sub></i>, and <i>τ</i> permutes the axes: <i>τ</i>(<i>x</i>) = <i>y</i> when <i>g</i>(${vSub(1)}) = ±${vSub(2)}, and so on. <i>V</i> is the identity and the three half-turns about the axes, the rotations with <i>τ</i> = 1. ` +
+      `The face centers are the corners of a cube (switch on <b>Cube</b>), and the face axes are its diagonals, so each rotation permutes them as on the <a href="https://j2d9w5xtjn-png.github.io/math25700-cube-tetrahedron/" target="_blank" rel="noopener">cube page</a>. ` +
+      `A positive angle about the axis through <i>P</i> turns counterclockwise as seen from <i>P</i> (from the positive end, for the <i>x</i>-, <i>y</i>- and <i>z</i>-axes). Compose right to left. The dashed outline marks where the solid started.`;
+  }
+  function renderAll() {
+    renderMove();
+    renderPos();
+    renderCatalogState();
+    renderControls();
+    updateLive();
+  }
+
+  // ---------- input ----------
+  let drag = null, hintGone = false;
+  function hideHint() { if (!hintGone) { hintGone = true; $("hint").classList.add("gone"); } }
+  function wire() {
+    $("catalog").addEventListener("click", (e) => {
+      const b = e.target.closest(".rot[data-i]");
+      if (!b) return;
+      request(EL[+b.dataset.i], e.shiftKey);
+    });
+    $("catalog").addEventListener("pointerover", (e) => {
+      const b = e.target.closest(".rot[data-i]");
+      const el = b ? EL[+b.dataset.i] : null;
+      if (el !== hoverEl) { hoverEl = el; kick(); }
+    });
+    $("catalog").addEventListener("pointerleave", () => { hoverEl = null; kick(); });
+    document.querySelectorAll("[data-group]").forEach((b) => b.addEventListener("click", () => setGroup(b.dataset.group)));
+    document.querySelectorAll(".tog").forEach((b) => b.addEventListener("click", () => {
+      show[b.dataset.show] = !show[b.dataset.show];
+      store.set("octa.show", JSON.stringify(show));
+      renderControls();
+      kick();
+    }));
+    document.querySelectorAll("[data-speed]").forEach((b) => b.addEventListener("click", () => {
+      speed = b.dataset.speed;
+      store.set("octa.speed", speed);
+      renderControls();
+    }));
+    $("btn-play").addEventListener("click", playPause);
+    $("btn-undo").addEventListener("click", undo);
+    $("btn-reset").addEventListener("click", reset);
+    $("btn-tour").addEventListener("click", playAll);
+    $("btn-view").addEventListener("click", viewAlongAxis);
+    $("btn-full").addEventListener("click", toggleFull);
+    $("scrub").addEventListener("input", () => {
+      if (!cur || !cur.el.ang) return;
+      stopTour();
+      queue.length = 0;
+      cur.playing = false;
+      cur.p = +$("scrub").value / 1000;
+      cur.tau = easeInv(cur.p);
+      renderAll();
+      kick();
+    });
+
+    // One pointer turns the view at a time; a second finger or a non-primary mouse button is ignored.
+    cv.addEventListener("pointerdown", (e) => {
+      if (drag || (e.pointerType === "mouse" && e.button !== 0)) return;
+      drag = { id: e.pointerId, x: e.clientX, y: e.clientY };
+      camAnim = null;
+      try { cv.setPointerCapture(e.pointerId); } catch (err) { /* pointer already released */ }
+      cv.classList.add("dragging");
+    });
+    cv.addEventListener("pointermove", (e) => {
+      if (!drag || e.pointerId !== drag.id) return;
+      if (e.pointerType === "mouse" && !(e.buttons & 1)) { endDrag(); return; }
+      const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+      drag.x = e.clientX;
+      drag.y = e.clientY;
+      if (!dx && !dy) return;
+      view.az -= dx * 0.008;
+      view.el = clamp(view.el + dy * 0.008, -1.5, 1.5);
+      if (viewSaved) { viewSaved = null; renderControls(); }
+      hideHint();
+      kick();
+    });
+    function endDrag() { drag = null; cv.classList.remove("dragging"); }
+    const endOwn = (e) => { if (drag && e.pointerId === drag.id) endDrag(); };
+    cv.addEventListener("pointerup", endOwn);
+    cv.addEventListener("pointercancel", endOwn);
+    cv.addEventListener("lostpointercapture", endOwn);
+    cv.addEventListener("dblclick", () => { viewSaved = null; animateView(DEFAULT_VIEW); renderControls(); });
+
+    document.addEventListener("keydown", (e) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const inRange = e.target && e.target.id === "scrub";
+      const k = e.key;
+      if (k === " ") {
+        // A focused control keeps its own Space action (for keyboard users); otherwise Space plays or pauses.
+        if (e.target && e.target.closest && e.target.closest("button, a, select, textarea, input:not([type=range])")) return;
+        e.preventDefault();
+        if (!e.repeat) playPause();
+        return;
+      }
+      if (k === "Escape") {
+        stopTour();
+        cancelPending();
+        queue.length = 0;
+        if (cur && cur.playing) { cur.playing = false; renderAll(); }
+        return;
+      }
+      if (k.startsWith("Arrow")) {
+        if (inRange) return;
+        e.preventDefault();
+        camAnim = null;
+        if (k === "ArrowLeft") view.az += 0.13;
+        if (k === "ArrowRight") view.az -= 0.13;
+        if (k === "ArrowUp") view.el = clamp(view.el + 0.13, -1.5, 1.5);
+        if (k === "ArrowDown") view.el = clamp(view.el - 0.13, -1.5, 1.5);
+        if (viewSaved) { viewSaved = null; renderControls(); }
+        hideHint();
+        kick();
+        return;
+      }
+      if (e.repeat) return;
+      switch (k.toLowerCase()) {
+        case "z": case "backspace": e.preventDefault(); undo(); break;
+        case "r": reset(); break;
+        case "a": playAll(); break;
+        case "v": viewAlongAxis(); break;
+        case "f": toggleFull(); break;
+        case "g": setGroup(group === "sign" ? "cosets" : "sign"); break;
+      }
+    });
+    // A mouse click shouldn't leave keyboard focus on a button, so that Space still plays or pauses afterwards.
+    document.addEventListener("click", (e) => { const b = e.detail > 0 && e.target.closest && e.target.closest("button"); if (b) b.blur(); });
+
+    new ResizeObserver(resize).observe(vp);
+    // Moving the window to a screen with a different pixel density changes devicePixelRatio but not the layout.
+    const watchDpr = () => {
+      const m = window.matchMedia(`(resolution: ${window.devicePixelRatio || 1}dppx)`);
+      if (m.addEventListener) m.addEventListener("change", () => { resize(); watchDpr(); }, { once: true });
+    };
+    watchDpr();
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    const retheme = () => { THEME = null; kick(); };
+    if (mq.addEventListener) mq.addEventListener("change", retheme);
+    new MutationObserver(retheme).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme", "class", "style"] });
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => kick());
+  }
+  function toggleFull() {
+    try {
+      if (document.fullscreenElement) { document.exitFullscreen(); return; }
+      const req = document.documentElement.requestFullscreen && document.documentElement.requestFullscreen();
+      if (req && req.catch) req.catch(() => {});
+    } catch (e) { /* full screen unavailable */ }
+  }
+
+  // ---------- startup ----------
+  function start(saved) {
+    saved = saved || {};
+    const s = store.get("octa.speed");
+    if (s && SPEEDS[s]) speed = s;
+    try { Object.assign(show, JSON.parse(store.get("octa.show") || "{}")); } catch (e) { /* ignore */ }
+    if (saved.show) Object.assign(show, saved.show);
+    if (saved.speed && SPEEDS[saved.speed]) speed = saved.speed;
+    group = saved.group === "cosets" || (!saved.group && store.get("octa.group") === "cosets") ? "cosets" : "sign";
+    if (saved.view) { view.az = saved.view.az; view.el = saved.view.el; }
+    wire();
+    preload(QUARTER[2][0]);
+    buildCatalog();
+    renderKey();
+    if (Array.isArray(saved.hist) && saved.hist.length && saved.hist.every((i) => EL[i])) {
+      const h = saved.hist;
+      base = I3;
+      h.slice(0, -1).forEach((i) => { base = mm(EL[i].M, base); });
+      hist = h.slice(0, -1);
+      cur = { kind: "move", el: EL[h[h.length - 1]], p: 1, tau: 1, dir: 1, playing: false, histAfter: h.slice() };
+    }
+    renderAll();
+    resize();
+  }
+
+  window.__octa = {
+    EL, action, axisAction, permText, sign,
+    setTimeScale(k) { timeScale = k; },
+    // Advance the animation clock by ms without waiting for the browser (used by the tests).
+    tick(ms) { if (raf) { cancelAnimationFrame(raf); raf = 0; } frame(lastTs + ms); },
+    // Screen position (CSS pixels) of a fixed point of space, and the camera position, for checking the picture.
+    project(P) { cam = camFrame(); const q = proj(P); return [q[0], q[1]]; },
+    cameraPos() { return camFrame().pos; },
+    // What was labeled on the last frame: boxes of the names and of the dots and tags on faces toward the viewer.
+    labels() { return labelsDrawn; },
+    markSize() { return { r: markR, h: markH }; },
+    state() {
+      const st = posState();
+      return { group, showTags: show.vtags, settled: !(cur && cur.playing) && !queue.length && !touring, inTransit: !st, G: st ? st.G : null, hist: st ? st.h.slice() : null, cur: cur && { idx: cur.el.idx, p: cur.p, kind: cur.kind, dir: cur.dir } };
+    },
+  };
+
+  window.claude?.hot?.snapshot?.(() => {
+    const st = posState();
+    return { group, hist: st ? st.h : hist, view: { az: view.az, el: view.el }, show, speed };
+  });
+  if (window.claude?.hot?.ready) window.claude.hot.ready(start);
+  else start(window.claude?.hot?.data ?? {});
+})();
+</script>
+</body>
+</html>
